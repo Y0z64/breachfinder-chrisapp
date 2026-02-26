@@ -26,6 +26,8 @@ parser.add_argument('-l', '--labels', nargs=2, type=tuple[int, ...], default=(1,
                     help='Label value pair of target region.')
 parser.add_argument('-ax', '--axis', "--view" , type=str, choices=["axial", "saggital", "coronal", "ax", "sg", "cr"] , default=1,
                     help="Default view axis")
+parser.add_argument('-w', '--weakpoints', "--show-weakpoints", action='store_true',
+                    help="Detect weakpoints")
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -72,6 +74,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
         lut_path=FREESURFER_LUT,
         label_values=options.labels,
         axis=options.axis,
+        show_weakpoints=options.weakpoints,
     )
     viewer.window.add_dock_widget(widget, name="Breach Finder", area="right")
     napari.run()

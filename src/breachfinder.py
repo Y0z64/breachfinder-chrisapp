@@ -76,7 +76,7 @@ def _cluster_and_locate(cluster_mask, grouping_factor=3):
 
 
 def detect_breaches(
-    seg_slice, label_values=(LEFT_CP, RIGHT_CP), detect_weakpoints=True
+    seg_slice, label_values=(LEFT_CP, RIGHT_CP), detect_weakpoints=False
 ):
     left_cp = (seg_slice == LEFT_CP).astype(np.uint8)
     right_cp = (seg_slice == RIGHT_CP).astype(np.uint8)
@@ -91,37 +91,39 @@ def detect_breaches(
     has_breach = False
     has_weakpoint = False
 
-    # weakpoint detection in eroded masks
-    left_cp_eroded = ndimage.binary_erosion(left_cp, iterations=1)
-    right_cp_eroded = ndimage.binary_erosion(right_cp, iterations=1)
-
     # Right hemisphere
     bm, found = _detect_breaches_for_hemisphere(right_cp, right_inner, left_inner)
-    wm, wfound = _detect_breaches_for_hemisphere(
-        left_cp_eroded, right_inner, left_inner
-    )
     if found:
         breach_mask |= bm
         has_breach = True
-
-    if wfound:
-        weakpoint_mask |= wm
-        has_weakpoint = True
 
     # Left hemisphere
     bm, found = _detect_breaches_for_hemisphere(left_cp, left_inner, right_inner)
-    wm, wfound = _detect_breaches_for_hemisphere(
-        right_cp_eroded, left_inner, right_inner
-    )
     if found:
         breach_mask |= bm
         has_breach = True
 
-    if wfound:
-        weakpoint_mask |= wm
-        has_weakpoint = True
+    if detect_weakpoints:
+        # weakpoint detection in eroded masks
+        left_cp_eroded = ndimage.binary_erosion(left_cp, iterations=1)
+        right_cp_eroded = ndimage.binary_erosion(right_cp, iterations=1)
 
-    if not has_breach and (not has_weakpoint and detect_weakpoints):
+        wm, wfound = _detect_breaches_for_hemisphere(
+            right_cp_eroded, left_inner, right_inner
+        )
+        if wfound:
+            weakpoint_mask |= wm
+            has_weakpoint = True
+
+        wm, wfound = _detect_breaches_for_hemisphere(
+            left_cp_eroded, right_inner, left_inner
+        )
+
+        if wfound:
+            weakpoint_mask |= wm
+            has_weakpoint = True
+
+    if not has_breach and not has_weakpoint:
         return None
 
     cp_mask = np.isin(seg_slice, list(label_values)).astype(np.uint8)
@@ -133,6 +135,7 @@ def detect_breaches(
     return {
         "breach_mask": breach_mask,
         "cp_mask": cp_mask,
+        "weakpoint_mask": weakpoint_mask,
         "holes": holes,
         "weakpoints": weakpoints,
     }

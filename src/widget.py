@@ -16,10 +16,8 @@ Napari shows 3-D arrays as-is, so we rotate the volumes on load and undo
 the rotation before saving back to NIfTI.
 """
 
-import os
 import numpy as np
 import nibabel as nib
-import napari
 from napari.utils.colormaps import DirectLabelColormap
 from qtpy.QtWidgets import (
     QWidget,
@@ -66,25 +64,17 @@ def load_freesurfer_colormap(lut_path):
     return DirectLabelColormap(color_dict=color_dict)
 
 
-#  orientation transforms
-
-# For each scrolling axis, these are the two displayed axes that need rotating.
+# Orientation transforms
 _ROT_PLANES = {0: (1, 2), 1: (0, 2), 2: (0, 1)}
-
 
 def _orient_for_display(data, axis):
     """Rotate a 3-D volume 90° CCW in the display plane of *axis*.
     This matches what matplotlib's ``.T`` + ``origin='lower'`` does."""
     return np.rot90(data, k=1, axes=_ROT_PLANES[axis])
 
-
 def _orient_for_save(data, axis):
     """Undo ``_orient_for_display`` so we can write back to NIfTI."""
     return np.rot90(data, k=-1, axes=_ROT_PLANES[axis])
-
-
-#  ellipse helper
-
 
 def _ellipse_bbox_3d(center_rc, radius, slice_idx, axis):
     """4×3 bounding box for a napari 3-D ellipse in *display* volume coords."""
@@ -105,10 +95,6 @@ def _ellipse_bbox_3d(center_rc, radius, slice_idx, axis):
         pt[cd] += dc * radius
         corners.append(pt)
     return np.array(corners, dtype=float)
-
-
-#  dock widget
-
 
 class BreachFinderWidget(QWidget):
     AXIS_NAMES = {0: "Sagittal", 1: "Coronal", 2: "Axial"}
@@ -153,6 +139,7 @@ class BreachFinderWidget(QWidget):
         lut_path,
         label_values=(LEFT_CP, RIGHT_CP),
         axis=0,
+        show_weakpoints=False,
     ):
         super().__init__()
         self.viewer = viewer
@@ -178,6 +165,7 @@ class BreachFinderWidget(QWidget):
                 0: np.array([0, 0, 0, 0], dtype=np.float32),
                 1: np.array([1, 0, 0, 0.85], dtype=np.float32),  # breach = red
                 2: np.array([0, 1, 0, 0.6], dtype=np.float32),  # cp = green
+                3: np.array([1, 1, 0, 0.85], dtype=np.float32),  # weakpoint = yellow
             }
         )
         empty_vol = np.zeros(self.seg_data.shape, dtype=int)
@@ -288,7 +276,13 @@ class BreachFinderWidget(QWidget):
         self.hl_check = QCheckBox("Show highlight circles")
         self.hl_check.setChecked(True)
         self.hl_check.stateChanged.connect(self._on_toggle_hl)
+
+        self.wp_check = QCheckBox("Check for weakpoints (WIP)")
+        self.wp_check.setChecked(show_weakpoints)
+        self.wp_check.stateChanged.connect(self._on_recheck)
+
         layout.addWidget(self.hl_check)
+        layout.addWidget(self.wp_check)
         layout.addStretch()
 
         #  keyboard shortcuts
@@ -330,7 +324,7 @@ class BreachFinderWidget(QWidget):
         self.fix_layer.data = self.fix_vol.copy()
 
         # Reset pads to match new shape
-        for pad in [self._pad1a, self._pad1b, self._pad1c, self._pad3a, self._pad3b]:
+        for pad in [self._pad1a, self._pad1b, self._pad3a, self._pad3b]:
             pad.data = empty.copy()
 
     def _apply_view_for_axis(self):
@@ -357,6 +351,8 @@ class BreachFinderWidget(QWidget):
         self.breach_vol[:] = 0
         overlay = np.zeros_like(result["breach_mask"], dtype=int)
         overlay[result["cp_mask"] == 1] = 2  # green = CP barrier
+        if self.wp_check.isChecked():
+            overlay[result["weakpoint_mask"] == 1] = 3  # yellow = weakpoint
         overlay[result["breach_mask"] == 1] = 1  # red = breach
         if self.axis == 0:
             self.breach_vol[idx, :, :] = overlay
@@ -381,10 +377,25 @@ class BreachFinderWidget(QWidget):
         if not self.hl_check.isChecked() or result is None:
             self.shapes_layer.data = []
             return
-        ellipses = [_ellipse_bbox_3d(c, r, self.current_slice, self.axis) for c, r in zip(result["holes"]["centroids"], result["holes"]["radii"])]
-        if ellipses:
-            self.shapes_layer.data = ellipses
-            self.shapes_layer.shape_type = ["ellipse"] * len(ellipses)
+
+        all_ellipses = []
+        edge_colors = []
+
+        # Breach holes → red
+        for c, r in zip(result["holes"]["centroids"], result["holes"]["radii"]):
+            all_ellipses.append(_ellipse_bbox_3d(c, r, self.current_slice, self.axis))
+            edge_colors.append("red")
+
+        # Weakpoints → yellow (if enabled)
+        if self.wp_check.isChecked():
+            for c, r in zip(result["weakpoints"]["centroids"], result["weakpoints"]["radii"]):
+                all_ellipses.append(_ellipse_bbox_3d(c, r, self.current_slice, self.axis))
+                edge_colors.append("yellow")
+
+        if all_ellipses:
+            self.shapes_layer.data = all_ellipses
+            self.shapes_layer.shape_type = ["ellipse"] * len(all_ellipses)
+            self.shapes_layer.edge_color = edge_colors
         else:
             self.shapes_layer.data = []
 
@@ -399,7 +410,7 @@ class BreachFinderWidget(QWidget):
         n = self.seg_data.shape[self.axis]
         for i in range(start_from, n):
             seg = extract_slice(self.seg_data, i, self.axis)
-            res = detect_breaches(seg, self.label_values)
+            res = detect_breaches(seg, self.label_values, detect_weakpoints=self.wp_check.isChecked())
             if res is not None:
                 self.current_slice = i
                 self.result = res
@@ -445,7 +456,7 @@ class BreachFinderWidget(QWidget):
         self.seg_layer.data = self.seg_data.astype(int)
 
         seg = extract_slice(self.seg_data, self.current_slice, self.axis)
-        res = detect_breaches(seg, self.label_values)
+        res = detect_breaches(seg, self.label_values, detect_weakpoints=self.wp_check.isChecked())
         if res is None:
             self.result = None
             self._clear_overlays()
