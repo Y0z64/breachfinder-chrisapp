@@ -45,7 +45,7 @@ def _detect_breaches_for_hemisphere(cp, inner, contra_inner):
     outside_reachable &= ~contra_inner.astype(bool)
 
     labeled_inner, n_regions = ndimage.label(inner)
-    breach_mask = np.zeros_like(cp)
+    breach_mask = np.zeros_like(cp, dtype=np.uint8)
     has_breach = False
 
     for region_id in range(1, n_regions + 1):
@@ -62,17 +62,17 @@ def _detect_breaches_for_hemisphere(cp, inner, contra_inner):
 def _cluster_and_locate(cluster_mask, grouping_factor=3):
 
     merged = ndimage.binary_dilation(cluster_mask, iterations=grouping_factor)
-    labeled, num_holes = ndimage.label(merged)
+    labeled, count = ndimage.label(merged)
 
     centroids = []
     radii = []
-    for i in range(1, num_holes + 1):
+    for i in range(1, count + 1):
         region = labeled == i
         area = (region & cluster_mask.astype(bool)).sum()
         centroids.append(ndimage.center_of_mass(region))
         radii.append(max(5, np.sqrt(area) * 2))
 
-    return {"num_holes": num_holes, "centroids": centroids, "radii": radii}
+    return {"count": count, "centroids": centroids, "radii": radii}
 
 
 def detect_breaches(

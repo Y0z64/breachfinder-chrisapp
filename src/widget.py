@@ -162,17 +162,17 @@ class BreachFinderWidget(QWidget):
         self.result = None
         self.current_slice = None
 
-        #  load raw data (disk orientation) 
+        #  load raw data (disk orientation)
         self._t2_raw = nib.load(t2_path).get_fdata()
         self.seg_img = nib.load(seg_path)
         self._seg_raw = self.seg_img.get_fdata()
         self.fs_cmap = load_freesurfer_colormap(lut_path)
 
-        #  rotate for display 
+        #  rotate for display
         self.t2_data = _orient_for_display(self._t2_raw, self.axis)
         self.seg_data = _orient_for_display(self._seg_raw, self.axis)
 
-        #  build colormaps 
+        #  build colormaps
         breach_cmap = DirectLabelColormap(
             color_dict={
                 0: np.array([0, 0, 0, 0], dtype=np.float32),
@@ -182,7 +182,7 @@ class BreachFinderWidget(QWidget):
         )
         empty_vol = np.zeros(self.seg_data.shape, dtype=int)
 
-        #  Panel 1: T2 only 
+        #  Panel 1: T2 only
         self.t2_panel1 = viewer.add_image(
             self.t2_data.copy(),
             name="T2 (raw)",
@@ -198,7 +198,7 @@ class BreachFinderWidget(QWidget):
             opacity=1,
         )
 
-        #  Panel 2: T2 + Seg + Breaches + Highlights 
+        #  Panel 2: T2 + Seg + Breaches + Highlights
         self.t2_panel2 = viewer.add_image(
             self.t2_data.copy(),
             name="T2 (seg)",
@@ -229,7 +229,7 @@ class BreachFinderWidget(QWidget):
             opacity=1.0,
         )
 
-        #  Panel 3: T2 + Proposed Fix 
+        #  Panel 3: T2 + Proposed Fix
         self._pad3a = viewer.add_labels(empty_vol.copy(), name="_pad3a", opacity=0.0)
         self._pad3b = viewer.add_labels(empty_vol.copy(), name="_pad3b", opacity=0.0)
         self.t2_panel3 = viewer.add_image(
@@ -246,13 +246,12 @@ class BreachFinderWidget(QWidget):
             opacity=0.5,
         )
 
-
-        #  enable grid mode 
+        #  enable grid mode
         viewer.grid.enabled = True
         viewer.grid.stride = self.GRID_STRIDE
         viewer.grid.shape = (1, 3)  # 1 row, 3 columns
 
-        #  Qt layout 
+        #  Qt layout
         layout = QVBoxLayout()
         self.setLayout(layout)
         title = QLabel("Breach Finder")
@@ -292,7 +291,7 @@ class BreachFinderWidget(QWidget):
         layout.addWidget(self.hl_check)
         layout.addStretch()
 
-        #  keyboard shortcuts 
+        #  keyboard shortcuts
         @viewer.bind_key("n")
         def _n(v):
             self._on_next()
@@ -305,11 +304,11 @@ class BreachFinderWidget(QWidget):
         def _a(v):
             self._on_apply()
 
-        #  go 
+        #  go
         self._apply_view_for_axis()
         self._advance(0)
 
-    #  orientation 
+    #  orientation
 
     def _reorient_volumes(self):
         """Re-rotate volumes from raw disk data for the current axis."""
@@ -338,7 +337,7 @@ class BreachFinderWidget(QWidget):
         """Set dims.order so the chosen axis becomes the slider."""
         self.viewer.dims.order = self.DIMS_ORDER[self.axis]
 
-    #  helpers 
+    #  helpers
 
     def _set_status(self, text, color="#0f0"):
         self.status_label.setText(text)
@@ -382,10 +381,7 @@ class BreachFinderWidget(QWidget):
         if not self.hl_check.isChecked() or result is None:
             self.shapes_layer.data = []
             return
-        ellipses = [
-            _ellipse_bbox_3d(c, r, self.current_slice, self.axis)
-            for c, r in zip(result["centroids"], result["radii"])
-        ]
+        ellipses = [_ellipse_bbox_3d(c, r, self.current_slice, self.axis) for c, r in zip(result["holes"]["centroids"], result["holes"]["radii"])]
         if ellipses:
             self.shapes_layer.data = ellipses
             self.shapes_layer.shape_type = ["ellipse"] * len(ellipses)
@@ -397,7 +393,7 @@ class BreachFinderWidget(QWidget):
         step[self.axis] = idx
         self.viewer.dims.current_step = tuple(step)
 
-    #  navigation 
+    #  navigation
 
     def _advance(self, start_from=0):
         n = self.seg_data.shape[self.axis]
@@ -427,12 +423,14 @@ class BreachFinderWidget(QWidget):
         self._write_fix_to_volume(fixed_seg, idx)
 
         self._navigate_to_slice(idx)
-        n = res["num_holes"]
+        n = res["holes"]["count"]
+        nw = res["weakpoints"]["count"]
         self._set_status(
-            f"Slice {idx} — {n} BREACH{'ES' if n != 1 else ''} detected", "#f44"
+            f"Slice {idx} — {n} BREACH{'ES' if n != 1 else ''} and {nw} WEAKPOINT{'S' if nw != 1 else ''} detected",
+            "#f44",
         )
 
-    #  callbacks 
+    #  callbacks
 
     def _on_next(self):
         self._advance(0 if self.current_slice is None else self.current_slice + 1)
