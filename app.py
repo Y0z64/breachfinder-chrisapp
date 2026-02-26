@@ -2,26 +2,35 @@
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
+import os
+import napari
+from src.widget import BreachFinderWidget
+from src.data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
 
-from chris_plugin import chris_plugin, PathMapper
+from chris_plugin import chris_plugin, PathMapper #type: ignore
 
 __version__ = '1.0.0'
 
 DISPLAY_TITLE = r"""
-ChRIS Plugin Template Title
+ChRIS T2 Breachfinder
 """
 
 
-parser = ArgumentParser(description='!!!CHANGE ME!!! An example ChRIS plugin which '
-                                    'counts the number of occurrences of a given '
-                                    'word in text files.',
-                        formatter_class=ArgumentDefaultsHelpFormatter)
-parser.add_argument('-w', '--word', required=True, type=str,
-                    help='word to count')
-parser.add_argument('-p', '--pattern', default='**/*.txt', type=str,
-                    help='input file filter glob')
+parser = ArgumentParser(
+    description="Find breaches in cortical plate segmentation by floodfilling and finding incorrectly exposed inner regions."
+    "Speeds up simple manual corrections of cp and sp segmentation in subjects with high complexity and low segmentation quality requirements."
+    "Specifically tuned for FNNDSC fetal brain reconstruction pipeline.",
+    formatter_class=ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument('-l', '--labels', nargs=2, type=tuple[int, ...], default=(1,42),
+                    help='Label value pair of target region.')
+parser.add_argument('-ax', '--axis', "--view" , type=str, choices=["axial", "saggital", "coronal", "ax", "sg", "cr"] , default=1,
+                    help="Default view axis")
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
+
+
+# Utils
 
 
 # The main function of this *ChRIS* plugin is denoted by this ``@chris_plugin`` "decorator."
@@ -30,7 +39,7 @@ parser.add_argument('-V', '--version', action='version',
 # documentation: https://fnndsc.github.io/chris_plugin/chris_plugin.html#chris_plugin
 @chris_plugin(
     parser=parser,
-    title='My ChRIS plugin',
+    title='Breachfinder',
     category='',                 # ref. https://chrisstore.co/plugins
     min_memory_limit='100Mi',    # supported units: Mi, Gi
     min_cpu_limit='1000m',       # millicores, e.g. "1000m" = 1 CPU core
@@ -49,21 +58,23 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
 
     print(DISPLAY_TITLE)
 
-    # Typically it's easier to think of programs as operating on individual files
-    # rather than directories. The helper functions provided by a ``PathMapper``
-    # object make it easy to discover input files and write to output files inside
-    # the given paths.
-    #
-    # Refer to the documentation for more options, examples, and advanced uses e.g.
-    # adding a progress bar and parallelism.
-    mapper = PathMapper.file_mapper(inputdir, outputdir, glob=options.pattern, suffix='.count.txt')
-    for input_file, output_file in mapper:
-        # The code block below is a small and easy example of how to use a ``PathMapper``.
-        # It is recommended that you put your functionality in a helper function, so that
-        # it is more legible and can be unit tested.
-        data = input_file.read_text()
-        frequency = data.count(options.word)
-        output_file.write_text(str(frequency))
+    BASE_PATH = inputdir
+    OUTPUT_PATH = outputdir if outputdir else BASE_PATH
+
+    t2_path = os.path.join(BASE_PATH, "recon_segmentation/recon_to31_nuc.nii")
+    seg_path = os.path.join(BASE_PATH, "recon_segmentation/segmentation_to31_final.nii.gz")
+
+    viewer = napari.Viewer(title="Breach Finder")
+    widget = BreachFinderWidget(
+        viewer,
+        t2_path=t2_path,
+        seg_path=seg_path,
+        lut_path=FREESURFER_LUT,
+        label_values=options.labels,
+        axis=options.axis,
+    )
+    viewer.window.add_dock_widget(widget, name="Breach Finder", area="right")
+    napari.run()
 
 
 if __name__ == '__main__':
