@@ -30,14 +30,14 @@ from qtpy.QtWidgets import (
 )
 from qtpy.QtCore import Qt
 
-from src.breachfinder import (
+from breachfinder import (
     detect_breaches,
     propose_fix,
     extract_slice,
     scan_volume,
 )
 
-from src.data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
+from data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
 
 def load_freesurfer_colormap(lut_path):
     color_dict = {0: np.array([0, 0, 0, 0], dtype=np.float32)}

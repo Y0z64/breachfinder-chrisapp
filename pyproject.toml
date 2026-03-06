@@ -1,11 +1,13 @@
 [project]
 name = "breachfinder-chrisapp"
-version = "0.1.0"
+version = "2026.3.5"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "napari[all]>=0.6.6",
+    "nibabel>=5.4.0",
+    "opencv-python-headless>=4.13.0.92",
     "pyrefly>=0.55.0",
 ]
 
@@ -15,10 +17,25 @@ project-includes = [
     "**/*.ipynb",
 ]
 
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["widget", "breachfinder"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.uv.sources]
 chris-plugin = { path = "../chris_plugin" }
 
 [dependency-groups]
 dev = [
     "chris-plugin",
+    "napari[all]>=0.6.6",
+    "setuptools>=82.0.0",
 ]
