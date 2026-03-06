@@ -4,8 +4,10 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
 import os
 import napari
-from src.widget import BreachFinderWidget
-from src.data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
+from widget import (
+    BreachFinderWidget,
+) 
+from data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
 
 from chris_plugin import chris_plugin, PathMapper #type: ignore
 
@@ -32,22 +34,19 @@ parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
 
-# Utils
-
-
 # The main function of this *ChRIS* plugin is denoted by this ``@chris_plugin`` "decorator."
 # Some metadata about the plugin is specified here. There is more metadata specified in setup.py.
 #
 # documentation: https://fnndsc.github.io/chris_plugin/chris_plugin.html#chris_plugin
 @chris_plugin(
     parser=parser,
-    title='Breachfinder',
-    category='',                 # ref. https://chrisstore.co/plugins
+    title="Breachfinder",
+    category="ts",                 # ref. https://chrisstore.co/plugins
     min_memory_limit='100Mi',    # supported units: Mi, Gi
     min_cpu_limit='1000m',       # millicores, e.g. "1000m" = 1 CPU core
     min_gpu_limit=0              # set min_gpu_limit=1 to enable GPU
 )
-def main(options: Namespace, inputdir: Path, outputdir: Path):
+def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
     """
     *ChRIS* plugins usually have two positional arguments: an **input directory** containing
     input files and an **output directory** where to write output files. Command-line arguments
@@ -64,7 +63,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     OUTPUT_PATH = outputdir if outputdir else BASE_PATH
 
     t2_path = os.path.join(BASE_PATH, "recon_segmentation/recon_to31_nuc.nii")
-    seg_path = os.path.join(BASE_PATH, "recon_segmentation/segmentation_to31_final.nii.gz")
+    seg_path = os.path.join(BASE_PATH, "recon_segmentation/segmentation_to31_final_bf.nii")
 
     viewer = napari.Viewer(title="Breach Finder")
     widget = BreachFinderWidget(

@@ -1,0 +1,24 @@
+[project]
+name = "breachfinder-chrisapp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "napari[all]>=0.6.6",
+    "pyrefly>=0.55.0",
+]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
+
+[tool.uv.sources]
+chris-plugin = { path = "../chris_plugin" }
+
+[dependency-groups]
+dev = [
+    "chris-plugin",
+]
