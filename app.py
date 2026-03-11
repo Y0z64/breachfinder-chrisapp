@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-from src.widgets.multiple_viewer_widget import MultipleViewerWidget, CrossWidget
+from widgets.controls import BreachFinderControls
+from src.widgets.multiple_viewer_widget import BreachFinderCorrectionViewer
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
 import os
-import napari #TODO: Aparently you are not supposed to do this? Maybe this is just for the plugin
-from widget import (
-    BreachFinderWidget,
-) 
+
+import napari
+
+
 from data.constants import FREESURFER_LUT
 
 from chris_plugin import chris_plugin
@@ -78,26 +79,25 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
     
     viewer = napari.Viewer(title="Breach Finder")
     
-    # widget = BreachFinderWidget(
-    #     viewer,
-    #     t2_path=t2_path,
-    #     seg_path=seg_path,
-    #     lut_path=FREESURFER_LUT,
-    #     label_values=tuple(options.labels),
-    #     axis=options.axis,
-    #     show_weakpoints=options.weakpoints,
-    # )
+    control_panel = BreachFinderControls(
+        axis=options.axis, show_weakpoints=options.weakpoints,
+    )
     
-    dock_widget = MultipleViewerWidget(viewer)
-    cross = CrossWidget(viewer)
+    correction_viewer = BreachFinderCorrectionViewer(
+        viewer,
+        t2_path=t2_path,
+        seg_path=seg_path,
+        lut_path=FREESURFER_LUT,
+        controls=control_panel,
+        label_values=tuple(options.labels),
+        axis=options.axis,
+        show_weakpoints=options.weakpoints,
+    )
 
-
-    viewer.window.add_dock_widget(dock_widget, name='Sample')
-    viewer.window.add_dock_widget(cross, name='Cross', area='left')
-
-    viewer.open_sample('napari', 'cells3d')
+    # Viewers replace the main canvas; controls go in the dock
+    viewer.window._qt_window.setCentralWidget(correction_viewer)
+    viewer.window.add_dock_widget(control_panel, name='Breach Finder', area='right')
     
-    # viewer.window.add_dock_widget(widget, name="Breach Finder", area="right")
     napari.run()
 
 
