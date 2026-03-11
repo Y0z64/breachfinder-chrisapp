@@ -93,6 +93,8 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
         axis=options.axis,
         show_weakpoints=options.weakpoints,
     )
+    
+    freeviewViewer = napari.Viewer(title="Freeview-style Viewer")
 
     # Viewers replace the main canvas; controls go in the dock
     viewer.window._qt_window.setCentralWidget(correction_viewer)
