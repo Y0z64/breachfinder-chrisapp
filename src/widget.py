@@ -149,9 +149,9 @@ class BreachFinderWidget(QWidget):
         self.current_slice = None
 
         #  load raw data (disk orientation)
-        self._t2_raw = nib.load(t2_path).get_fdata()
+        self._t2_raw = nib.load(t2_path).get_fdata()  # ty:ignore[unresolved-attribute]
         self.seg_img = nib.load(seg_path)
-        self._seg_raw = self.seg_img.get_fdata()
+        self._seg_raw = self.seg_img.get_fdata()  # ty:ignore[unresolved-attribute]
         self.fs_cmap = load_freesurfer_colormap(lut_path)
 
         #  rotate for display
