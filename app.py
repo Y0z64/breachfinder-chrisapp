@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from src.widgets.multiple_viewer_widget import MultipleViewerWidget, CrossWidget
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
@@ -71,17 +72,32 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
     t2_path = os.path.join(BASE_PATH, "recon_segmentation/", options.input)
     seg_path = os.path.join(OUTPUT_PATH, "recon_segmentation/", options.output)
 
+    from qtpy.QtCore import Qt
+    from qtpy.QtWidgets import QApplication
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+    
     viewer = napari.Viewer(title="Breach Finder")
-    widget = BreachFinderWidget(
-        viewer,
-        t2_path=t2_path,
-        seg_path=seg_path,
-        lut_path=FREESURFER_LUT,
-        label_values=tuple(options.labels),
-        axis=options.axis,
-        show_weakpoints=options.weakpoints,
-    )
-    viewer.window.add_dock_widget(widget, name="Breach Finder", area="right")
+    
+    # widget = BreachFinderWidget(
+    #     viewer,
+    #     t2_path=t2_path,
+    #     seg_path=seg_path,
+    #     lut_path=FREESURFER_LUT,
+    #     label_values=tuple(options.labels),
+    #     axis=options.axis,
+    #     show_weakpoints=options.weakpoints,
+    # )
+    
+    dock_widget = MultipleViewerWidget(viewer)
+    cross = CrossWidget(viewer)
+
+
+    viewer.window.add_dock_widget(dock_widget, name='Sample')
+    viewer.window.add_dock_widget(cross, name='Cross', area='left')
+
+    viewer.open_sample('napari', 'cells3d')
+    
+    # viewer.window.add_dock_widget(widget, name="Breach Finder", area="right")
     napari.run()
 
 

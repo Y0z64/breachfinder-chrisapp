@@ -15,10 +15,17 @@ is equivalent to a 90° counter-clockwise rotation of the raw array slice.
 Napari shows 3-D arrays as-is, so we rotate the volumes on load and undo
 the rotation before saving back to NIfTI.
 """
+from typing import TYPE_CHECKING, cast
+
+from pathlib import Path
+from nibabel.dataobj_images import DataobjImage
+
+if TYPE_CHECKING:
+    from napari import Viewer
+    from napari.utils.colormaps import DirectLabelColormap    
 
 import numpy as np
 import nibabel as nib
-from napari.utils.colormaps import DirectLabelColormap
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -28,7 +35,7 @@ from qtpy.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt 
 
 from breachfinder import (
     detect_breaches,
@@ -36,9 +43,7 @@ from breachfinder import (
     extract_slice,
 )
 
-from data.constants import LEFT_CP, RIGHT_CP
-
-def load_freesurfer_colormap(lut_path):
+def load_freesurfer_colormap(lut_path) -> 'DirectLabelColormap':
     color_dict = {0: np.array([0, 0, 0, 0], dtype=np.float32)}
     with open(lut_path) as f:
         for line in f:
@@ -132,14 +137,14 @@ class BreachFinderWidget(QWidget):
 
     def __init__(
         self,
-        viewer,
-        t2_path,
-        seg_path,
-        lut_path,
-        label_values=(LEFT_CP, RIGHT_CP),
-        axis=0,
-        show_weakpoints=False,
-    ):
+        viewer: 'Viewer',
+        t2_path: str | Path,
+        seg_path: str | Path,
+        lut_path: str | Path,
+        label_values: tuple[int, int] = (1, 42),
+        axis: int=0,
+        show_weakpoints: bool =False,
+    ) -> None:
         super().__init__()
         self.viewer = viewer
         self.seg_path = seg_path
@@ -149,9 +154,10 @@ class BreachFinderWidget(QWidget):
         self.current_slice = None
 
         #  load raw data (disk orientation)
-        self._t2_raw = nib.load(t2_path).get_fdata()  # ty:ignore[unresolved-attribute]
-        self.seg_img = nib.load(seg_path)
-        self._seg_raw = self.seg_img.get_fdata()  # ty:ignore[unresolved-attribute]
+        self._t2_seg = cast(DataobjImage ,nib.load(t2_path))
+        self._t2_raw = self._t2_seg.get_fdata() 
+        self.seg_img =  cast(DataobjImage, nib.load(seg_path))
+        self._seg_raw = self.seg_img.get_fdata() 
         self.fs_cmap = load_freesurfer_colormap(lut_path)
 
         #  rotate for display
@@ -242,7 +248,7 @@ class BreachFinderWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
         title = QLabel("Breach Finder")
-        title.setAlignment(Qt.AlignCenter)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight:bold; font-size:14px;")
         layout.addWidget(title)
 
@@ -257,7 +263,7 @@ class BreachFinderWidget(QWidget):
         layout.addLayout(axis_row)
 
         self.status_label = QLabel("Ready")
-        self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_label.setStyleSheet(
             "background:#333; color:#0f0; padding:4px; border-radius:4px;"
         )
@@ -449,7 +455,7 @@ class BreachFinderWidget(QWidget):
         if self.current_slice is None:
             return
         # Reload raw data from disk, then re-orient for display
-        self.seg_img = nib.load(self.seg_path)
+        self.seg_img = cast(DataobjImage, nib.load(self.seg_path))
         self._seg_raw = self.seg_img.get_fdata()
         self.seg_data = _orient_for_display(self._seg_raw, self.axis)
         self.seg_layer.data = self.seg_data.astype(int)

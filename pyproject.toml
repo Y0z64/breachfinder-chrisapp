@@ -11,6 +11,12 @@ dependencies = [
     "pyrefly>=0.55.0",
 ]
 
+[tool.ty.environment]
+extra-paths = ["./src/stubs"]
+
+[tool.ty.rules]
+possibly-missing-attribute = "ignore"
+
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
