@@ -37,7 +37,7 @@ chris-plugin = { path = "../chris_plugin" }
 dev = [
     "chris-plugin",
     "napari[all]>=0.6.6",
-    "rufus>=0.1.0",
+    "ruff>=0.15.5",
     "setuptools>=82.0.0",
     "ty>=0.0.21",
 ]
