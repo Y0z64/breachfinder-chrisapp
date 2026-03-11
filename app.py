@@ -3,13 +3,13 @@
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
 import os
-import napari
+import napari #TODO: Aparently you are not supposed to do this? Maybe this is just for the plugin
 from widget import (
     BreachFinderWidget,
 ) 
 from data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
 
-from chris_plugin import chris_plugin, PathMapper #type: ignore
+from chris_plugin import chris_plugin, PathMapper
 
 __version__ = '1.0.0'
 
@@ -24,7 +24,12 @@ parser = ArgumentParser(
     "Specifically tuned for FNNDSC fetal brain reconstruction pipeline.",
     formatter_class=ArgumentDefaultsHelpFormatter,
 )
-parser.add_argument('-l', '--labels', nargs=2, type=tuple[int, ...], default=(1,42),
+parser.add_argument('-i', "--input", "--t2", type=str, default="recon_to31_nuc.nii",
+                    help='Name of input file')
+parser.add_argument('-o', "--output", "--seg", type=str, default="segmentation_to31_final.nii",
+                    help='Name of input file')
+
+parser.add_argument('-l', '--labels', nargs=2, type=int, default=[1,42],
                     help='Label value pair of target region.')
 parser.add_argument('-ax', '--axis', "--view" , type=str, choices=["axial", "saggital", "coronal", "ax", "sg", "cr"] , default=1,
                     help="Default view axis")
@@ -34,6 +39,7 @@ parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
 
+# TODO: Add a way to bypass inputdir and outputdir optionally for ease of use when outside of plugin
 # The main function of this *ChRIS* plugin is denoted by this ``@chris_plugin`` "decorator."
 # Some metadata about the plugin is specified here. There is more metadata specified in setup.py.
 #
@@ -61,9 +67,9 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
 
     BASE_PATH = inputdir
     OUTPUT_PATH = outputdir if outputdir else BASE_PATH
-
-    t2_path = os.path.join(BASE_PATH, "recon_segmentation/recon_to31_nuc.nii")
-    seg_path = os.path.join(BASE_PATH, "recon_segmentation/segmentation_to31_final_bf.nii")
+    
+    t2_path = os.path.join(BASE_PATH, "recon_segmentation/", options.input)
+    seg_path = os.path.join(OUTPUT_PATH, "recon_segmentation/", options.output)
 
     viewer = napari.Viewer(title="Breach Finder")
     widget = BreachFinderWidget(
@@ -71,7 +77,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
         t2_path=t2_path,
         seg_path=seg_path,
         lut_path=FREESURFER_LUT,
-        label_values=options.labels,
+        label_values=tuple(options.labels),
         axis=options.axis,
         show_weakpoints=options.weakpoints,
     )
