@@ -14,6 +14,8 @@ Control panel (BreachFinderControls) sits to the right of the viewers.
 All detection / overlay / navigation logic is inherited from
 ``breach_viewer_base.BreachViewerMixin``.
 """
+from utils import orient_for_display
+from breachviewer_base import BreachViewerMixin
 from data.constants import DIMS_ORDER
 
 from pathlib import Path
@@ -28,10 +30,7 @@ from napari.components.viewer_model import ViewerModel
 from napari.qt import QtViewer
 
 from widgets.controls import BreachFinderControls
-from breach_viewer_base import (
-    BreachViewerMixin,
-    orient_for_display,
-)
+
 
 
 class QtViewerWrap(QtViewer):

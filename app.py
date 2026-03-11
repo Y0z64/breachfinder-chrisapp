@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+from widgets.ortho_viewer import BreachFinderOrthoViewer
 from widgets.controls import BreachFinderControls
-from src.widgets.multiple_viewer_widget import BreachFinderCorrectionViewer
+from src.widgets.correction_viewer import BreachFinderCorrectionViewer
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
@@ -83,22 +84,29 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
         axis=options.axis, show_weakpoints=options.weakpoints,
     )
     
-    correction_viewer = BreachFinderCorrectionViewer(
+    # correction_viewer = BreachFinderCorrectionViewer(
+    #     viewer,
+    #     t2_path=t2_path,
+    #     seg_path=seg_path,
+    #     lut_path=FREESURFER_LUT,
+    #     controls=control_panel,
+    #     label_values=tuple(options.labels),
+    #     axis=options.axis,
+    #     show_weakpoints=options.weakpoints,
+    # )
+    
+    ortho = BreachFinderOrthoViewer(
         viewer,
         t2_path=t2_path,
         seg_path=seg_path,
         lut_path=FREESURFER_LUT,
         controls=control_panel,
-        label_values=tuple(options.labels),
-        axis=options.axis,
-        show_weakpoints=options.weakpoints,
     )
-    
-    freeviewViewer = napari.Viewer(title="Freeview-style Viewer")
+    # freeviewViewer = napari.Viewer(title="Freeview-style Viewer")
 
     # Viewers replace the main canvas; controls go in the dock
-    viewer.window._qt_window.setCentralWidget(correction_viewer)
-    viewer.window.add_dock_widget(control_panel, name='Breach Finder', area='right')
+    viewer.window._qt_window.setCentralWidget(ortho)
+    viewer.window.add_dock_widget(ortho, name='Breach Finder', area='right')
     
     napari.run()
 

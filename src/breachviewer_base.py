@@ -40,20 +40,31 @@ class BreachViewerMixin:
         viewer, seg_path, label_values, axis
 
     And must expose:
-        breach_layer, breach_vol, fix_layer, fix_vol, shapes_layer,
+        breach_layer, breach_vol, shapes_layer,
         seg_layer, seg_data, t2_data, _t2_raw, _seg_raw, seg_img, fs_cmap,
         controls  (BreachFinderControls instance)
+
+    Optionally for fix preview:
+        fix_layer, fix_vol
 
     The host widget must implement:
         _navigate_to_slice(idx)
         _reorient_volumes()
         _apply_view_for_axis()
+
+    Overridable hooks for layer broadcasting:
+        _broadcast_breach_vol()
+        _broadcast_fix_vol()
+        _broadcast_seg_data()
+        _apply_highlights(all_ellipses, edge_colors)
+        _clear_highlights()
     """
 
     # Declared for type checkers — set by subclasses / _init_breach_state
     seg_path: str | Path
     label_values: tuple[int, int]
     axis: int
+    _orient: bool
     result: dict | None
     current_slice: int | None
     _t2_raw: NDArray
@@ -78,28 +89,61 @@ class BreachViewerMixin:
         lut_path: str | Path,
         label_values: tuple[int, int],
         axis: int,
+        orient: bool = True,
     ):
-        """Load NIfTI data and orient for display. Call from __init__."""
+        """Load NIfTI data and optionally orient for display."""
         self.seg_path = seg_path
         self.label_values = label_values
         self.axis = axis
+        self._orient = orient
         self.result = None
         self.current_slice = None
 
-        self._t2_seg = cast(DataobjImage, nib.load(t2_path))
-        self._t2_raw = self._t2_seg.get_fdata()
+        self._t2_img = cast(DataobjImage, nib.load(t2_path))
+        self._t2_raw = self._t2_img.get_fdata()
         self.seg_img = cast(DataobjImage, nib.load(seg_path))
         self._seg_raw = self.seg_img.get_fdata()
         self.fs_cmap = load_freesurfer_colormap(lut_path)
         self.breach_cmap = make_breach_colormap()
 
-        self.t2_data = orient_for_display(self._t2_raw, self.axis)
-        self.seg_data = orient_for_display(self._seg_raw, self.axis)
+        if orient:
+            self.t2_data = orient_for_display(self._t2_raw, self.axis)
+            self.seg_data = orient_for_display(self._seg_raw, self.axis)
+        else:
+            self.t2_data = self._t2_raw
+            self.seg_data = self._seg_raw
 
     # Abstract hooks — must be implemented by the host widget
     def _navigate_to_slice(self, idx: int) -> None: ...
     def _reorient_volumes(self) -> None: ...
     def _apply_view_for_axis(self) -> None: ...
+
+    # ── Overridable layer-broadcast hooks ─────────────────────────
+
+    def _broadcast_breach_vol(self):
+        """Push breach_vol data to breach layer(s)."""
+        self.breach_layer.data = self.breach_vol.copy()
+
+    def _broadcast_fix_vol(self):
+        """Push fix_vol data to fix layer(s)."""
+        self.fix_layer.data = self.fix_vol.copy()
+
+    def _broadcast_seg_data(self):
+        """Push seg_data to segmentation layer(s)."""
+        self.seg_layer.data = self.seg_data.astype(int)
+
+    def _apply_highlights(self, all_ellipses, edge_colors):
+        """Set highlight shapes on the appropriate layer(s)."""
+        if all_ellipses:
+            self.shapes_layer.data = all_ellipses
+            self.shapes_layer.shape_type = ["ellipse"] * len(all_ellipses)
+            self.shapes_layer.edge_color = edge_colors
+        else:
+            self.shapes_layer.data = []
+
+    def _clear_highlights(self):
+        """Clear all highlight shapes."""
+        self.shapes_layer.data = []
 
     def _bind_shortcuts(self, viewer):
         @viewer.bind_key("n")
@@ -121,10 +165,11 @@ class BreachViewerMixin:
 
     def _clear_overlays(self):
         self.breach_vol[:] = 0
-        self.breach_layer.data = self.breach_vol.copy()
-        self.fix_vol[:] = 0
-        self.fix_layer.data = self.fix_vol.copy()
-        self.shapes_layer.data = []
+        self._broadcast_breach_vol()
+        if hasattr(self, 'fix_vol'):
+            self.fix_vol[:] = 0
+            self._broadcast_fix_vol()
+        self._clear_highlights()
 
     def _write_breach_to_volume(self, result, idx):
         self.breach_vol[:] = 0
@@ -139,7 +184,7 @@ class BreachViewerMixin:
             self.breach_vol[:, idx, :] = overlay
         else:
             self.breach_vol[:, :, idx] = overlay
-        self.breach_layer.data = self.breach_vol.copy()
+        self._broadcast_breach_vol()
 
     def _write_fix_to_volume(self, fixed_seg, idx):
         self.fix_vol[:] = 0
@@ -149,11 +194,11 @@ class BreachViewerMixin:
             self.fix_vol[:, idx, :] = fixed_seg.astype(int)
         else:
             self.fix_vol[:, :, idx] = fixed_seg.astype(int)
-        self.fix_layer.data = self.fix_vol.copy()
+        self._broadcast_fix_vol()
 
     def _update_highlights(self, result):
         if not self.controls.hl_check.isChecked() or result is None:
-            self.shapes_layer.data = []
+            self._clear_highlights()
             return
 
         all_ellipses = []
@@ -172,12 +217,7 @@ class BreachViewerMixin:
                 )
                 edge_colors.append("yellow")
 
-        if all_ellipses:
-            self.shapes_layer.data = all_ellipses
-            self.shapes_layer.shape_type = ["ellipse"] * len(all_ellipses)
-            self.shapes_layer.edge_color = edge_colors
-        else:
-            self.shapes_layer.data = []
+        self._apply_highlights(all_ellipses, edge_colors)
 
     # ── Navigation ────────────────────────────────────────────────
 
@@ -206,9 +246,10 @@ class BreachViewerMixin:
         self._write_breach_to_volume(res, idx)
         self._update_highlights(res)
 
-        seg = extract_slice(self.seg_data, idx, self.axis)
-        fixed_seg = propose_fix(seg, res["breach_mask"])
-        self._write_fix_to_volume(fixed_seg, idx)
+        if hasattr(self, 'fix_vol'):
+            seg = extract_slice(self.seg_data, idx, self.axis)
+            fixed_seg = propose_fix(seg, res["breach_mask"])
+            self._write_fix_to_volume(fixed_seg, idx)
 
         self._navigate_to_slice(idx)
         n = res["holes"]["count"]
@@ -229,8 +270,11 @@ class BreachViewerMixin:
             return
         self.seg_img = cast(DataobjImage, nib.load(self.seg_path))
         self._seg_raw = self.seg_img.get_fdata()
-        self.seg_data = orient_for_display(self._seg_raw, self.axis)
-        self.seg_layer.data = self.seg_data.astype(int)
+        if self._orient:
+            self.seg_data = orient_for_display(self._seg_raw, self.axis)
+        else:
+            self.seg_data = self._seg_raw
+        self._broadcast_seg_data()
 
         seg = extract_slice(self.seg_data, self.current_slice, self.axis)
         res = detect_breaches(
@@ -261,14 +305,14 @@ class BreachViewerMixin:
         else:
             self.seg_data[:, :, idx] = fixed
 
-        self._seg_raw = orient_for_save(self.seg_data, self.axis)
+        save_data = orient_for_save(self.seg_data, self.axis) if self._orient else self.seg_data
 
         try:
             out = nib.Nifti1Image(
-                self._seg_raw, self.seg_img.affine, self.seg_img.header
+                save_data, self.seg_img.affine, self.seg_img.header
             )
             nib.save(out, self.seg_path)
-            self.seg_layer.data = self.seg_data.astype(int)
+            self._broadcast_seg_data()
             self._set_status(f"✓ Fix applied & saved — Slice {idx}", "#0f0")
             self._on_recheck()
         except Exception as e:
