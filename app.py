@@ -7,9 +7,9 @@ import napari #TODO: Aparently you are not supposed to do this? Maybe this is ju
 from widget import (
     BreachFinderWidget,
 ) 
-from data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
+from data.constants import FREESURFER_LUT
 
-from chris_plugin import chris_plugin, PathMapper
+from chris_plugin import chris_plugin
 
 __version__ = '1.0.0'
 

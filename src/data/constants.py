@@ -1,4 +1,3 @@
-import os
 
 #  label constants 
 LEFT_CP = 1

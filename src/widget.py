@@ -34,10 +34,9 @@ from breachfinder import (
     detect_breaches,
     propose_fix,
     extract_slice,
-    scan_volume,
 )
 
-from data.constants import FREESURFER_LUT, LEFT_CP, RIGHT_CP
+from data.constants import LEFT_CP, RIGHT_CP
 
 def load_freesurfer_colormap(lut_path):
     color_dict = {0: np.array([0, 0, 0, 0], dtype=np.float32)}
