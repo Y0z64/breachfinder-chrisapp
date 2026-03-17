@@ -1,7 +1,10 @@
 #!/usr/bin/env python
-from widgets.ortho_viewer import BreachFinderOrthoViewer
+from utils import add_central_viewer
+from napari._qt.qt_main_window import _QtMainWindow
+from chris_plugin import chris_plugin
+
 from widgets.controls import BreachFinderControls
-from src.widgets.correction_viewer import BreachFinderCorrectionViewer
+from widgets.correction_viewer import BreachFinderCorrectionViewer
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
@@ -9,10 +12,14 @@ import os
 
 import napari
 
-
 from data.constants import FREESURFER_LUT
 
-from chris_plugin import chris_plugin
+
+# Required for the ortho viewer
+from widgets.ortho_viewer import BreachFinderOrthoViewer
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QApplication
+QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 __version__ = '1.0.0'
 
@@ -73,10 +80,6 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
     
     t2_path = os.path.join(BASE_PATH, "recon_segmentation/", options.input)
     seg_path = os.path.join(OUTPUT_PATH, "recon_segmentation/", options.output)
-
-    from qtpy.QtCore import Qt
-    from qtpy.QtWidgets import QApplication
-    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     
     viewer = napari.Viewer(title="Breach Finder")
     
@@ -102,11 +105,9 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
         lut_path=FREESURFER_LUT,
         controls=control_panel,
     )
-    # freeviewViewer = napari.Viewer(title="Freeview-style Viewer")
-
-    # Viewers replace the main canvas; controls go in the dock
-    viewer.window._qt_window.setCentralWidget(ortho)
-    viewer.window.add_dock_widget(ortho, name='Breach Finder', area='right')
+    
+    add_central_viewer(viewer, ortho)    
+    viewer.window.add_dock_widget(control_panel, name='Breach Finder', area='right')
     
     napari.run()
 

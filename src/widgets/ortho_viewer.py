@@ -6,11 +6,11 @@ Traditional three-perspective (Sagittal / Coronal / Axial) medical viewer
 with integrated breach detection and navigation.
 
 Layout:
-    ┌──────────┬──────────┐
+    ┌┬┐
     │ Sagittal │ Coronal  │
-    ├──────────┴──────────┤
+    ├┴┤
     │       Axial         │
-    └─────────────────────┘
+    └┘
 
 Each panel contains:
 - T2 image layer
@@ -103,7 +103,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         # Connect the externally-provided controls panel
         self._connect_controls(controls)
 
-        # ── Three independent viewer models ───────────────────────
+        #  Three independent viewer models 
         self.viewer_models: list[ViewerModel] = []
         self.qt_viewers: list[QtViewerWrap] = []
         self._t2_layers = []
@@ -112,13 +112,17 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         self._shapes_layers = []
         self._cross_layers: list[Vectors] = []
 
-        for title in ('Sagittal', 'Coronal', 'Axial'):
+        self.viewer_models.append(viewer)  # viewer IS a ViewerModel subclass
+        self.qt_viewers.append(viewer.window._qt_viewer)
+
+        # Fresh models for the other two
+        for title in ('Coronal', 'Axial'):
             model = ViewerModel(title=title)
             qt_v = QtViewerWrap(viewer, model)
             self.viewer_models.append(model)
             self.qt_viewers.append(qt_v)
-
-        # ── Layout ────────────────────────────────────────────────
+        
+        #  Layout 
         self.setOrientation(Qt.Orientation.Vertical)
         top = QSplitter(Qt.Orientation.Horizontal)
         top.addWidget(self.qt_viewers[0])
@@ -128,26 +132,26 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         self.addWidget(self.qt_viewers[2])
         self.setContentsMargins(0, 0, 0, 0)
 
-        # ── Populate layers ───────────────────────────────────────
+        #  Populate layers 
         self._setup_layers(show_cross)
 
-        # ── Set each panel's perspective ──────────────────────────
+        #  Set each panel's perspective 
         for i, model in enumerate(self.viewer_models):
             model.dims.order = DIMS_ORDER[i]
 
-        # ── Synchronisation events ────────────────────────────────
+        #  Synchronisation events 
         for model in self.viewer_models:
             model.dims.events.current_step.connect(self._point_update)
             model.events.status.connect(self._status_update)
             model.camera.events.zoom.connect(self._zoom_update)
 
-        # ── Keyboard shortcuts ────────────────────────────────────
+        #  Keyboard shortcuts 
         self._bind_qt_shortcuts(viewer.window._qt_window)
 
-        # ── Start detection ───────────────────────────────────────
+        #  Start detection 
         self._advance(0)
 
-    # ── Keyboard shortcuts ────────────────────────────────────────
+    #  Keyboard shortcuts 
 
     def _bind_qt_shortcuts(self, window):
         QShortcut(QKeySequence("N"), window, self._on_next)
@@ -155,7 +159,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         QShortcut(QKeySequence("A"), window, self._on_apply)
         QShortcut(QKeySequence("Z"), window, self._toggle_sync_zoom)
 
-    # ── Layer setup ───────────────────────────────────────────────
+    #  Layer setup 
 
     def _setup_layers(self, show_cross: bool):
         for i, model in enumerate(self.viewer_models):
@@ -196,7 +200,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         for seg in self._seg_layers:
             seg.events.opacity.connect(self._sync_seg_opacity)
 
-    # ── Opacity synchronisation (linked layers) ───────────────────
+    #  Opacity synchronisation (linked layers) 
 
     def _sync_t2_opacity(self, event):
         if self._block:
@@ -220,7 +224,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         finally:
             self._block = False
 
-    # ── Crosshair ─────────────────────────────────────────────────
+    #  Crosshair 
 
     def _update_crosses(self):
         shape = self.t2_data.shape
@@ -251,7 +255,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         if visible:
             self._update_crosses()
 
-    # ── Multi-viewer synchronisation ──────────────────────────────
+    #  Multi-viewer synchronisation 
 
     def _point_update(self, event):
         if self._block:
@@ -291,7 +295,7 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
         finally:
             self._zoom_block = False
 
-    # ── Mixin hooks (multi-layer broadcasting) ────────────────────
+    #  Mixin hooks (multi-layer broadcasting) 
 
     def _broadcast_breach_vol(self):
         for bl in self._breach_layers:

@@ -1,9 +1,9 @@
 [project]
-name = "breachfinder-chrisapp"
+name = "breachfinder"
 version = "2026.3.5"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "napari[all]>=0.6.6",
     "nibabel>=5.4.0",
@@ -46,4 +46,5 @@ dev = [
     "ruff>=0.15.5",
     "setuptools>=82.0.0",
     "ty>=0.0.21",
+    "ty-extensions>=0.1.0",
 ]

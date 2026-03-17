@@ -1,3 +1,9 @@
+from PyQt5.uic.Compiler.qtproxies import QtWidgets
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from napari import Viewer
+
 from data.constants import _ROT_PLANES
 from typing import TYPE_CHECKING
 
@@ -62,3 +68,16 @@ def ellipse_bbox_3d(center_rc, radius, slice_idx, axis):
         pt[cd] += dc * radius
         corners.append(pt)
     return np.array(corners, dtype=float)
+
+
+def add_central_viewer(viewer: "Viewer", ortho: QtWidgets.QWidget) -> None:
+    """
+
+    Args:
+        viewer (Viewer): _description_
+        ortho (BreachFinderOrthoViewer): _description_
+        controls (QWidget): _description_
+    """
+    _keep_alive = viewer.window._qt_window.centralWidget()
+
+    viewer.window._qt_window.setCentralWidget(ortho)
