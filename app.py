@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 from utils import add_central_viewer
-from napari._qt.qt_main_window import _QtMainWindow
 from chris_plugin import chris_plugin
 
 from widgets.controls import BreachFinderControls
-from widgets.correction_viewer import BreachFinderCorrectionViewer
 
 from pathlib import Path
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
@@ -50,19 +48,7 @@ parser.add_argument('-V', '--version', action='version',
 
 
 # TODO: Add a way to bypass inputdir and outputdir optionally for ease of use when outside of plugin
-# The main function of this *ChRIS* plugin is denoted by this ``@chris_plugin`` "decorator."
-# Some metadata about the plugin is specified here. There is more metadata specified in setup.py.
-#
-# documentation: https://fnndsc.github.io/chris_plugin/chris_plugin.html#chris_plugin
-@chris_plugin(
-    parser=parser,
-    title="Breachfinder",
-    category="ts",                 # ref. https://chrisstore.co/plugins
-    min_memory_limit='100Mi',    # supported units: Mi, Gi
-    min_cpu_limit='1000m',       # millicores, e.g. "1000m" = 1 CPU core
-    min_gpu_limit=0              # set min_gpu_limit=1 to enable GPU
-)
-def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
+def main(options: Namespace, inputdir: Path | str = os.getcwd(), outputdir: Path | str = os.getcwd()) -> None:
     """
     *ChRIS* plugins usually have two positional arguments: an **input directory** containing
     input files and an **output directory** where to write output files. Command-line arguments
@@ -111,6 +97,21 @@ def main(options: Namespace, inputdir: Path, outputdir: Path) -> None:
     
     napari.run()
 
+# The main function of this *ChRIS* plugin is denoted by this ``@chris_plugin`` "decorator."
+# Some metadata about the plugin is specified here. There is more metadata specified in setup.py.
+#
+# documentation: https://fnndsc.github.io/chris_plugin/chris_plugin.html#chris_plugin
+@chris_plugin(
+    parser=parser,
+    title="Breachfinder",
+    category="ts",                 # ref. https://chrisstore.co/plugins
+    min_memory_limit='100Mi',    # supported units: Mi, Gi
+    min_cpu_limit='1000m',       # millicores, e.g. "1000m" = 1 CPU core
+    min_gpu_limit=0              # set min_gpu_limit=1 to enable GPU
+)
+def chris_main(options: Namespace, inputdir: Path, outputdir: Path):
+    main(options, inputdir, outputdir)
 
 if __name__ == '__main__':
-    main()
+    args = parser.parse_args()
+    main(args, )
