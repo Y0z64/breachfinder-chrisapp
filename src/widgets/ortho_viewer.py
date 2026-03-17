@@ -6,11 +6,11 @@ Traditional three-perspective (Sagittal / Coronal / Axial) medical viewer
 with integrated breach detection and navigation.
 
 Layout:
-    ┌┬┐
-    │ Sagittal │ Coronal  │
-    ├┴┤
-    │       Axial         │
-    └┘
+    ┌          ┬          ┐
+    │          │ Coronal  │
+    │ Sagittal ├          ┤
+    │          │  Axial   │
+    └          ┴          ┘
 
 Each panel contains:
 - T2 image layer
@@ -123,14 +123,14 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
             self.qt_viewers.append(qt_v)
         
         #  Layout 
-        self.setOrientation(Qt.Orientation.Vertical)
-        top = QSplitter(Qt.Orientation.Horizontal)
-        top.addWidget(self.qt_viewers[0])
-        top.addWidget(self.qt_viewers[1])
-        top.setContentsMargins(0, 0, 0, 0)
-        self.addWidget(top)
-        self.addWidget(self.qt_viewers[2])
+        self.setOrientation(Qt.Orientation.Horizontal)
+        self.addWidget(self.qt_viewers[0])
         self.setContentsMargins(0, 0, 0, 0)
+        right = QSplitter(Qt.Orientation.Vertical)
+        right.addWidget(self.qt_viewers[1])
+        right.addWidget(self.qt_viewers[2])
+        right.setContentsMargins(0, 0, 0, 0)
+        self.addWidget(right)
 
         #  Populate layers 
         self._setup_layers(show_cross)
