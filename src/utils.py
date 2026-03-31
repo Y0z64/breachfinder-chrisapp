@@ -41,12 +41,12 @@ def load_freesurfer_colormap(lut_path) -> 'DirectLabelColormap':
 
 def orient_for_display(data, axis):
     """Rotate a 3-D volume 90° CCW in the display plane of *axis*."""
-    return np.rot90(data, k=1, axes=_ROT_PLANES[axis])
+    return np.rot90(data, k=-1, axes=_ROT_PLANES[axis])
 
 
 def orient_for_save(data, axis):
     """Undo ``orient_for_display`` so we can write back to NIfTI."""
-    return np.rot90(data, k=-1, axes=_ROT_PLANES[axis])
+    return np.rot90(data, k=1, axes=_ROT_PLANES[axis])
 
 
 def ellipse_bbox_3d(center_rc, radius, slice_idx, axis):

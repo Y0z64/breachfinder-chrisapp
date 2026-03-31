@@ -131,7 +131,7 @@ class BreachFinderCorrectionViewer(QSplitter, BreachViewerMixin):
         QShortcut(QKeySequence("A"), window, self._on_apply)
         QShortcut(QKeySequence("Z"), window, self._toggle_sync_zoom)
 
-    # ── Layer setup ───────────────────────────────────────────────
+    #  Layer setup 
 
     def _setup_layers(self):
         empty = np.zeros(self.seg_data.shape, dtype=int)
@@ -181,7 +181,7 @@ class BreachFinderCorrectionViewer(QSplitter, BreachViewerMixin):
             opacity=0.5,
         )
 
-    # ── Multi-viewer synchronisation ──────────────────────────────
+    #  Multi-viewer synchronisation 
 
     def _toggle_sync_zoom(self):
         cb = self.controls.zoom_check
@@ -221,7 +221,7 @@ class BreachFinderCorrectionViewer(QSplitter, BreachViewerMixin):
         finally:
             self._block = False
 
-    # ── Viewer-specific hooks (required by BreachViewerMixin) ─────
+    #  Viewer-specific hooks (required by BreachViewerMixin) 
 
     def _navigate_to_slice(self, idx):
         for model in [self.viewer_model1, self.viewer_model2, self.viewer_model3]:

@@ -17,6 +17,7 @@ DIMS_ORDER = {
 }
 
 _ROT_PLANES = {0: (1, 2), 1: (0, 2), 2: (0, 1)}
+_ORIENTATIONS = {0: ("up", "right"), 1: ("up", "right"), 2: ("up", "right")}
 
 
 def make_breach_colormap():

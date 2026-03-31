@@ -33,9 +33,9 @@ parser = ArgumentParser(
     formatter_class=ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument('-i', "--input", "--t2", type=str, default="recon_to31_nuc.nii",
-                    help='Name of input file')
-parser.add_argument('-o', "--output", "--seg", type=str, default="segmentation_to31_final.nii",
-                    help='Name of input file')
+                    help='Path of T2 image.')
+parser.add_argument('-o', "--output", "-s", "--seg", type=str, default="segmentation_to31_final.nii",
+                    help='Path of output segmentation image.')
 
 parser.add_argument('-l', '--labels', nargs=2, type=int, default=[1,42],
                     help='Label value pair of target region.')
@@ -45,6 +45,7 @@ parser.add_argument('-w', '--weakpoints', "--show-weakpoints", action='store_tru
                     help="Detect weakpoints")
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
+
 
 
 # TODO: Add a way to bypass inputdir and outputdir optionally for ease of use when outside of plugin
@@ -80,16 +81,17 @@ def main(options: Namespace, inputdir: Path | str = os.getcwd(), outputdir: Path
     #     lut_path=FREESURFER_LUT,
     #     controls=control_panel,
     #     label_values=tuple(options.labels),
-    #     axis=options.axis,
+    #     axis=options.axis,gu
     #     show_weakpoints=options.weakpoints,
     # )
     
     ortho = BreachFinderOrthoViewer(
         viewer,
-        t2_path=t2_path,
-        seg_path=seg_path,
+        t2_path=options.input if options.input else t2_path,
+        seg_path=options.output if options.output else seg_path,
         lut_path=FREESURFER_LUT,
         controls=control_panel,
+        show_cross=False
     )
     
     add_central_viewer(viewer, ortho)    

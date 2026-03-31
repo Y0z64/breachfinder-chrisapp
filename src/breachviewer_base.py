@@ -118,7 +118,7 @@ class BreachViewerMixin:
     def _reorient_volumes(self) -> None: ...
     def _apply_view_for_axis(self) -> None: ...
 
-    # ── Overridable layer-broadcast hooks ─────────────────────────
+    #  Overridable layer-broadcast hooks 
 
     def _broadcast_breach_vol(self):
         """Push breach_vol data to breach layer(s)."""
@@ -158,7 +158,7 @@ class BreachViewerMixin:
         def _a(v):
             self._on_apply()
 
-    # ── Status / Overlays ─────────────────────────────────────────
+    #  Status / Overlays 
 
     def _set_status(self, text, color="#0f0"):
         self.controls.set_status(text, color)
@@ -219,7 +219,7 @@ class BreachViewerMixin:
 
         self._apply_highlights(all_ellipses, edge_colors)
 
-    # ── Navigation ────────────────────────────────────────────────
+    #  Navigation 
 
     def _advance(self, start_from=0):
         n = self.seg_data.shape[self.axis]
@@ -260,7 +260,7 @@ class BreachViewerMixin:
             "#f44",
         )
 
-    # ── Callbacks ─────────────────────────────────────────────────
+    #  Callbacks 
 
     def _on_next(self):
         self._advance(0 if self.current_slice is None else self.current_slice + 1)

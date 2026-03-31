@@ -13,3 +13,5 @@ __pycache__/
 .venv/
 
 .ruff_cache/
+
+_test_data/
