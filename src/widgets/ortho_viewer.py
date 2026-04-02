@@ -153,6 +153,9 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
             model.events.status.connect(self._status_update)
             model.camera.events.zoom.connect(self._zoom_update)
 
+        #  Controls signals
+        controls.axis_changed.connect(self._update_focus)
+
         #  Keyboard shortcuts 
         self._bind_qt_shortcuts(viewer.window._qt_window)
 
@@ -216,6 +219,14 @@ class BreachFinderOrthoViewer(QSplitter, BreachViewerMixin):
             if show_cross:
                 model.layers.append(cross)
 
+    def _update_focus(self, index: int):
+        focused_widget = self.qt_viewers[index]
+        others = [v for i, v in self.qt_viewers.items() if i != index]
+        
+        self.insertWidget(0, focused_widget)
+        
+        for i, widget in enumerate(others):
+            self._right_splitter.insertWidget(i, widget)
     #  Crosshair 
 
     def _update_crosses(self):

@@ -50,7 +50,8 @@ class BreachFinderControls(QWidget):
             self.axis_combo.addItem(v, k)
         self.axis_combo.setCurrentIndex(axis)
         self.axis_combo.currentIndexChanged.connect(
-            lambda _: self.axis_changed.emit(self.axis_combo.currentData())
+            lambda _:
+                self.axis_changed.emit(self.axis_combo.currentData())
         )
         axis_row.addWidget(self.axis_combo)
         layout.addLayout(axis_row)
