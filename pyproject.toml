@@ -38,11 +38,13 @@ where = ["src"]
 
 [tool.uv.sources]
 chris-plugin = { path = "../chris_plugin" }
+niicat = { path = "../niicat" }
 
 [dependency-groups]
 dev = [
     "chris-plugin",
     "napari[all]>=0.6.6",
+    "niicat",
     "ruff>=0.15.5",
     "setuptools>=82.0.0",
     "ty>=0.0.21",
